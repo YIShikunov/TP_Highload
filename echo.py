@@ -5,7 +5,7 @@ from time import gmtime, strftime
 
 def RespondWithTestFile(client):
 	print('{date}: Client Connected'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime())))
-	#f = open("1.txt", 'r')
+	f = open("1.txt", 'r')
 	
 	http_response = 'HTTP/1.1 200 OK\r\n'
 	http_response += 'Date: {date}\r\n'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime()))
@@ -26,15 +26,18 @@ def RespondWithTestFile(client):
 	client.close()
 	print('{date}: Connection closed'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime())))
 
-def handle(client):
-    #while True:
-        #c = client.recv(1)
-        #if not c: break
-    #    client.sendall(c)
-    RespondWithTestFile(client)
+
+def handleS(client):
+	print("Client connected")
+	s = client.recv(10000);
+	client.sendall(s);
+	client.shutdown(socket.SHUT_RDWR);
+	client.close();
 
 server = eventlet.listen(('0.0.0.0', 8080))
 pool = eventlet.GreenPool(10000)
 while True:
     new_sock, address = server.accept()
-    pool.spawn_n(handle, new_sock)
+    pool.spawn_n(handleS, new_sock)
+
+
