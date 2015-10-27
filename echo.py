@@ -1,7 +1,8 @@
 import eventlet
 from eventlet.green import os 
 from eventlet.green import socket
-from time import gmtime, strftime
+from eventlet.green.time import gmtime, strftime
+import dicts
 
 def RespondWithTestFile(client):
 	print('{date}: Client Connected'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime())))
@@ -29,10 +30,13 @@ def RespondWithTestFile(client):
 
 def handleS(client):
 	print("Client connected")
-	s = client.recv(10000);
-	client.sendall(s);
-	client.shutdown(socket.SHUT_RDWR);
-	client.close();
+	s = client.recv(10000)
+	headers = str(s).split("\\r\\n")
+	if "GET" in headers[0]:
+		print(headers)
+	client.sendall(s)
+	client.shutdown(socket.SHUT_RDWR)
+	client.close()
 
 server = eventlet.listen(('0.0.0.0', 8080))
 pool = eventlet.GreenPool(10000)
