@@ -12,7 +12,7 @@ contentTypes = {
 }
 
 responseCodes = {
-	'OK': '200',
-	'Not found': '404',
-	'Wrong request': '405'
+	'OK': '200 OK',
+	'Not found': '404 Not Found',
+	'Wrong request': '405 Method Not Allowed'
 }
