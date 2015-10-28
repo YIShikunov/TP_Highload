@@ -2,7 +2,40 @@ import eventlet
 from eventlet.green import os 
 from eventlet.green import socket
 from eventlet.green.time import gmtime, strftime
+from eventlet.green import urllib
 import dicts
+
+def RespondNotSupported(client):
+	http_response = 'HTTP/1.1 ' + dicts.responseCodes['405'] + '\r\n'
+	http_response += 'Date: {date}\r\n'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime()))
+	http_response += 'Server: TPHW\r\n'
+	http_response += '\r\n'
+	client.sendall(http_response)
+
+def RespondFile(client, file):
+	path = urllib.unquote(file)
+	f = None
+	if (os.path.isfile(path)):
+		try:
+			f = open(path)
+		except PermissionError:
+			print("Permission error on " + path)
+			Respond404(client)
+		except IOError:
+			print("File not found on " + path)
+			Respond404(client)
+		####
+	elif (os.path.isdir(path)):
+		try:
+			f = open(os.path.join(path, 'index.html')
+		except PermissionError:
+			print("Permission error on " + path)
+			Respond404(client)
+		except IOError:
+			print("File not found on " + path)
+			f = GenerateDirectoryIndex()
+	
+#TODO
 
 def RespondWithTestFile(client):
 	print('{date}: Client Connected'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime())))
@@ -33,7 +66,10 @@ def handleS(client):
 	s = client.recv(10000)
 	headers = str(s).split("\\r\\n")
 	request = headers[0].split(' ')
-	
+	if request[0] not in discts.supportedRequests:
+		RespondNotSupported(client)
+	else:
+		RespondHead(client, request[1])
 	if "GET" in headers[0]:
 		print(headers)
 		RespondWithTestFile(client)
