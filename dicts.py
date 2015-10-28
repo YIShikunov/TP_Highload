@@ -12,7 +12,9 @@ contentTypes = {
 }
 
 responseCodes = {
-	'OK': '200 OK',
-	'Not found': '404 Not Found',
-	'Wrong request': '405 Method Not Allowed'
+	'200': '200 OK',
+	'404': '404 Not Found',
+	'405': '405 Method Not Allowed'
 }
+
+supportedRequests = ['GET', 'HEAD']
