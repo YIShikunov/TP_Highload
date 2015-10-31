@@ -34,7 +34,7 @@ def Respond404(client):
 
 
 def RespondHead(client, file):
-    path = parse.unquote(file)
+    path = os.getcwd() + parse.unquote(file)
     f = None
     if (os.path.isfile(path)):
         try:
