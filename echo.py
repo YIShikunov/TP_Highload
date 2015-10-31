@@ -66,16 +66,16 @@ def RespondHead(client, file):
 #TODO
 
 def RespondWithFile(client, file):
-    if (file is str):
+    if (type(file) is str):
         client.sendall(file.encode())
     else:
         offset = 0
         while True:
-            sent = os.sendfile(client.fileno(), f.fileno(), offset, 4096)
+            sent = os.sendfile(client.fileno(), file.fileno(), offset, 4096)
             if sent <= 0:
                 break
             offset += sent
-        f.close()
+        file.close()
 #   client.shutdown(socket.SHUT_RDWR)
 #   client.close()
 
