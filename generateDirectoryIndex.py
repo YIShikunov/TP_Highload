@@ -1,4 +1,4 @@
-import os
+from eventlet.green import os
 from io import StringIO
 
 def generateDirectoryIndex(dirpath):
