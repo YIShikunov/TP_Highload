@@ -61,6 +61,13 @@ def RespondHead(client, file):
         except IOError:
             print("File not found on " + path)
             f = generateDirectoryIndex(path)
+            http_response = 'HTTP/1.1 200 OK\r\n'
+            http_response += 'Date: {date}\r\n'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime()))
+            http_response += 'Server: TPHW\r\n'
+            http_response += 'Content-Length: {0}\r\n'.format(length(f))
+            http_response += 'Content-Type: {0}\r\n'.format("text/html"))
+            http_response += '\r\n'
+            client.sendall(http_response.encode())
     return f
     
 #TODO
