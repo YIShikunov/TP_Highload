@@ -35,6 +35,7 @@ def Respond404(client):
 
 def RespondHead(client, file):
     path = os.getcwd() + parse.unquote(file)
+    print("requesting file: " + str(path))
     f = None
     if (os.path.isfile(path)):
         try:
@@ -52,7 +53,7 @@ def RespondHead(client, file):
         except IOError:
             print("File not found on " + path)
             Respond404(client)
-    elif (os.path.isdir(path)):
+    elif (os.path.isdir(path) or ("index.html" in str(path))):
         try:
             f = open(os.path.join(path, 'index.html'), 'r')
         except PermissionError:
@@ -60,7 +61,8 @@ def RespondHead(client, file):
             Respond404(client)
         except IOError:
             print("File not found on " + path)
-            f = generateDirectoryIndex(path)
+            filteredPath = os.path.dirname(path)
+            f = generateDirectoryIndex(filteredPath)
             http_response = 'HTTP/1.1 200 OK\r\n'
             http_response += 'Date: {date}\r\n'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime()))
             http_response += 'Server: TPHW\r\n'
@@ -68,6 +70,8 @@ def RespondHead(client, file):
             http_response += 'Content-Type: {0}\r\n'.format("text/html")
             http_response += '\r\n'
             client.sendall(http_response.encode())
+    else:
+        Respond404(client)
     return f
     
 #TODO
@@ -83,16 +87,12 @@ def RespondWithFile(client, file):
                 break
             offset += sent
         file.close()
-#   client.shutdown(socket.SHUT_RDWR)
-#   client.close()
-
 
 def handle(client):
     print('{date}: Client Connected'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime())))
     s = client.recv(10000)
-    headers = s.decode().split("\\r\\n")
+    headers = s.decode().split("\r\n")
     request = headers[0].split(' ')
-    print(headers)
     print(request)
     file = None
     if request[0] not in dicts.supportedRequests:
