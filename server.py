@@ -4,6 +4,7 @@ from eventlet.green import socket
 from eventlet.green.time import gmtime, strftime
 from eventlet.green.urllib import parse
 import argparse
+from multiprocessing import Process, Pipe
 import dicts
 from generateDirectoryIndex import generateDirectoryIndex
 
@@ -105,21 +106,36 @@ def handle(client):
     client.close()
     print('{date}: Connection closed'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime())))
 
+
+def worker(pipe):
+    pool = eventlet.GreenPool(2500)
+    while True:
+        pool.spawn_n(handle, pipe.recv());
+
 def main():
     parser = argparse.ArgumentParser(description='Python Web Server')
     parser.add_argument('-p', type = int, help = 'Port Number', default = 8080)
     parser.add_argument('-r', type = str, help = 'Document Root Path', default = os.getcwd())
-    #parser.add_argument('-c', type = int, help='CPU Number')
+    parser.add_argument('-c', type = int, help='CPU Number', default = 1)
     parser.add_help = True
     args = vars(parser.parse_args())
     port = args['p']
+    cpus = args['c']
     os.chdir(args['r'] or os.getcwd())
     print("Starting server on port: ", port)
     server = eventlet.listen(('0.0.0.0', port))
-    pool = eventlet.GreenPool(10000)
+    pipes = [];
+    processes = [];
+    for i in range(1, cpus):
+        parent_conn, child_conn = Pipe()
+        pipes.append(parent_conn)
+        p = Process(target=worker, args=(child_conn,))
+        processes.append[p]
+    counter = 0;
     while True:
         new_sock, address = server.accept()
-        pool.spawn_n(handle, new_sock)
+        pipes[counter].send(new_sock)
+        counter = counter + 1 % cpus
 
 if __name__ == '__main__':
     proc_dir = os.getcwd()
