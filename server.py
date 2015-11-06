@@ -3,6 +3,7 @@ from eventlet.green import os
 from eventlet.green import socket
 from eventlet.green.time import gmtime, strftime
 from eventlet.green.urllib import parse
+import argparse
 import dicts
 from generateDirectoryIndex import generateDirectoryIndex
 
@@ -105,8 +106,18 @@ def handle(client):
     client.close()
     print('{date}: Connection closed'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime())))
 
-server = eventlet.listen(('0.0.0.0', 8080))
-pool = eventlet.GreenPool(10000)
-while True:
-    new_sock, address = server.accept()
-    pool.spawn_n(handle, new_sock)
+def main():
+    parser = argparse.ArgumentParser(description='Python Web Server')
+    parser.add_argument('-p', type = int, help='Port Number')
+    parser.add_argument('-r', type = str, help='Document Root Path')
+    #parser.add_argument('-c', type = int, help='CPU Number')
+    parser.add_help()
+    args = vars(parser.parse_args())
+    port = args['p'] or 8080
+    chdir(args['r'] or os.getcwd())
+    server = eventlet.listen(('0.0.0.0', port))
+    pool = eventlet.GreenPool(10000)
+    while True:
+        new_sock, address = server.accept()
+        pool.spawn_n(handle, new_sock)
+main()
