@@ -16,11 +16,12 @@ def RespondNotSupported(client):
 
 
 def Respond404(client):
-    f = open("404.html", 'r')
+    path404 = os.path.join(proc_dir, "404.html")
+    f = open(path404, 'r')
     http_response = 'HTTP/1.1 ' + dicts.responseCodes['404'] + '\r\n'
     http_response += 'Date: {date}\r\n'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime()))
     http_response += 'Server: TPHW\r\n'
-    http_response += 'Content-Length: {0}\r\n'.format(os.stat("404.html").st_size)
+    http_response += 'Content-Length: {0}\r\n'.format(os.stat(path404).st_size)
     http_response += 'Content-Type: {0}\r\n'.format(dicts.contentTypes['html'])
     http_response += '\r\n'
     client.sendall(http_response.encode())
@@ -63,7 +64,7 @@ def RespondHead(client, file):
         except IOError:
             print("File not found on " + path)
             filteredPath = os.path.dirname(path)
-            f = generateDirectoryIndex(filteredPath)
+            f = generateDirectoryIndex(filteredPath, os.getcwd())
             http_response = 'HTTP/1.1 200 OK\r\n'
             http_response += 'Date: {date}\r\n'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime()))
             http_response += 'Server: TPHW\r\n'
@@ -75,8 +76,6 @@ def RespondHead(client, file):
         Respond404(client)
     return f
     
-#TODO
-
 def RespondWithFile(client, file):
     if (type(file) is str):
         client.sendall(file.encode())
@@ -108,16 +107,20 @@ def handle(client):
 
 def main():
     parser = argparse.ArgumentParser(description='Python Web Server')
-    parser.add_argument('-p', type = int, help='Port Number')
-    parser.add_argument('-r', type = str, help='Document Root Path')
+    parser.add_argument('-p', type = int, help = 'Port Number', default = 8080)
+    parser.add_argument('-r', type = str, help = 'Document Root Path', default = os.getcwd())
     #parser.add_argument('-c', type = int, help='CPU Number')
-    parser.add_help()
+    parser.add_help = True
     args = vars(parser.parse_args())
-    port = args['p'] or 8080
-    chdir(args['r'] or os.getcwd())
+    port = args['p']
+    os.chdir(args['r'] or os.getcwd())
+    print("Starting server on port: ", port)
     server = eventlet.listen(('0.0.0.0', port))
     pool = eventlet.GreenPool(10000)
     while True:
         new_sock, address = server.accept()
         pool.spawn_n(handle, new_sock)
-main()
+
+if __name__ == '__main__':
+    proc_dir = os.getcwd()
+    main()

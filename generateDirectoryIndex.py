@@ -1,7 +1,7 @@
 from eventlet.green import os
 from io import StringIO
 
-def generateDirectoryIndex(dirpath):
+def generateDirectoryIndex(dirpath, root_dir):
 	current_dir, filenames = dirpath, os.listdir(dirpath)
 	output = StringIO()
 	output.write("<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\"><html>")
