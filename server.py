@@ -2,7 +2,9 @@
 from eventlet.green import os 
 from eventlet.green import socket
 from eventlet.green.time import gmtime, strftime
-from eventlet.green.urllib import parse
+#from eventlet.green.urllib import parse
+#from urllib import parse
+import urllib
 import argparse
 from multiprocessing import Process, Pipe
 import dicts
@@ -26,18 +28,24 @@ def Respond404(client):
     http_response += 'Content-Type: {0}\r\n'.format(dicts.contentTypes['html'])
     http_response += '\r\n'
     client.sendall(http_response.encode())
+    
+    l = f.read(4096)
+    while(l):
+        client.send(l)
+        l = f.read(4096)
+    #f.close()
+    #offset = 0
+    #while True:
+    #    sent = os.sendfile(client.fileno(), f.fileno(), offset, 4096)
+    #    if sent <= 0:
+    #        break
+    #    offset += sent
 
-    offset = 0
-    while True:
-        sent = os.sendfile(client.fileno(), f.fileno(), offset, 4096)
-        if sent <= 0:
-            break
-        offset += sent
     f.close()
 
 
 def RespondHead(client, file):
-    path = os.getcwd() + parse.unquote(file)
+    path = os.getcwd() + urllib.unquote(file)
     print("requesting file: " + str(path))
     f = None
     if (os.path.isfile(path)):
@@ -50,7 +58,7 @@ def RespondHead(client, file):
             http_response += 'Content-Type: {0}\r\n'.format(dicts.contentTypes.get(path.split(".")[-1], 'application/octet-stream'))
             http_response += '\r\n'
             client.sendall(http_response.encode())
-        except PermissionError:
+        except IOError:
             print("Permission error on " + path)
             Respond404(client)
         except IOError:
@@ -59,34 +67,40 @@ def RespondHead(client, file):
     elif (os.path.isdir(path) or ("index.html" in str(path))):
         try:
             f = open(os.path.join(path, 'index.html'), 'r')
-        except PermissionError:
-            print("Permission error on " + path)
-            Respond404(client)
-        except IOError:
-            print("File not found on " + path)
-            filteredPath = os.path.dirname(path)
-            f = generateDirectoryIndex(filteredPath, os.getcwd())
-            http_response = 'HTTP/1.1 200 OK\r\n'
-            http_response += 'Date: {date}\r\n'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime()))
-            http_response += 'Server: TPHW\r\n'
-            http_response += 'Content-Length: {0}\r\n'.format(len(f))
-            http_response += 'Content-Type: {0}\r\n'.format("text/html")
-            http_response += '\r\n'
-            client.sendall(http_response.encode())
+        except IOError as error:
+            if (error.errno == 13):
+                print("Permission error on " + path)
+                Respond404(client)
+        #except IOError:
+            else:
+                print("File not found on " + path)
+                filteredPath = os.path.dirname(path)
+                f = generateDirectoryIndex(filteredPath, os.getcwd())
+                http_response = 'HTTP/1.1 200 OK\r\n'
+                http_response += 'Date: {date}\r\n'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime()))
+                http_response += 'Server: TPHW\r\n'
+                http_response += 'Content-Length: {0}\r\n'.format(len(f))
+                http_response += 'Content-Type: {0}\r\n'.format("text/html")
+                http_response += '\r\n'
+                client.sendall(http_response.encode())
     else:
         Respond404(client)
     return f
     
 def RespondWithFile(client, file):
-    if (type(file) is str):
+    if (type(file) in [str, unicode]):
         client.sendall(file.encode())
     else:
-        offset = 0
-        while True:
-            sent = os.sendfile(client.fileno(), file.fileno(), offset, 4096)
-            if sent <= 0:
-                break
-            offset += sent
+#        offset = 0
+#        while True:
+#            sent = os.sendfile(client.fileno(), file.fileno(), offset, 4096)
+#            if sent <= 0:
+#                break
+#            offset += sent
+        l = file.read(4096)
+        while(l):
+            client.send(l)
+            l = file.read(4096)
         file.close()
 
 def handle(client):
@@ -124,18 +138,20 @@ def main():
     os.chdir(args['r'] or os.getcwd())
     print("Starting server on port: ", port)
     server = eventlet.listen(('0.0.0.0', port))
-    pipes = [];
-    processes = [];
-    for i in range(1, cpus):
-        parent_conn, child_conn = Pipe()
-        pipes.append(parent_conn)
-        p = Process(target=worker, args=(child_conn,))
-        processes.append[p]
-    counter = 0;
+    #pipes = [];
+    #processes = [];
+    #for i in range(1, cpus):
+    #    parent_conn, child_conn = Pipe()
+    #    pipes.append(parent_conn)
+    #    p = Process(target=worker, args=(child_conn,))
+    #    processes.append[p]
+    #counter = 0;
+    pool = eventlet.GreenPool(10000)
     while True:
         new_sock, address = server.accept()
-        pipes[counter].send(new_sock)
-        counter = counter + 1 % cpus
+        #pipes[counter].send(new_sock)
+        #counter = counter + 1 % cpus
+        pool.spawn_n(handle,new_sock)
 
 if __name__ == '__main__':
     proc_dir = os.getcwd()
