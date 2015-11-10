@@ -4,7 +4,7 @@ from eventlet.green import socket
 from eventlet.green.time import gmtime, strftime
 from eventlet.green.urllib import parse
 import argparse
-from multiprocessing import Process, Pipe
+import sys
 import dicts
 from generateDirectoryIndex import generateDirectoryIndex
 
@@ -104,13 +104,7 @@ def handle(client):
         RespondWithFile(client, file)
     client.shutdown(socket.SHUT_RDWR)
     client.close()
-    print('{date}: Connection closed'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime())))
-
-
-def worker(pipe):
-    pool = eventlet.GreenPool(2500)
-    while True:
-        pool.spawn_n(handle, pipe.recv());
+    print('{date}: Connection Closed'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime())))
 
 def main():
     parser = argparse.ArgumentParser(description='Python Web Server')
@@ -123,20 +117,29 @@ def main():
     cpus = args['c']
     os.chdir(args['r'] or os.getcwd())
     print("Starting server on port: ", port)
-    server = eventlet.listen(('0.0.0.0', port))
-    pipes = [];
-    processes = [];
-    for i in range(0, cpus):
-        parent_conn, child_conn = Pipe()
-        pipes.append(parent_conn)
-        p = Process(target=worker, args=(child_conn,))
-        processes.append(p)
-    counter = 0;
-    print(len(pipes), len(processes))
-    while True:
-        new_sock, address = server.accept()
-        pipes[counter].send(new_sock)
-        counter = (counter + 1) % cpus
+    server = eventlet.listen(('0.0.0.0', port), backlog = 100)
+
+    for i in range(cpus):
+        pid = os.fork()
+        # os.fork() returns 0 in the child process and the child's
+        # process id in the parent. So if pid == 0 then we're in
+        # the child process.
+        if pid == 0:
+            pool = eventlet.GreenPool(10000)
+            childpid = os.getpid()
+            print('Started the Fork with PID: {0}'.format(childpid))
+            try:
+                while True:
+                    new_sock, address = server.accept()
+                    pool.spawn_n(handle, new_sock)
+            except KeyboardInterrupt:
+                print('Exiting the Child Process')
+                sys.exit()
+    try:
+        os.waitpid(-1, 0)
+    except KeyboardInterrupt:
+        print('Killing the Server')
+        sys.exit()
 
 if __name__ == '__main__':
     proc_dir = os.getcwd()
