@@ -103,23 +103,42 @@ def handle(client):
         RespondWithFile(client, file)
     client.shutdown(socket.SHUT_RDWR)
     client.close()
-    print('{date}: Connection closed'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime())))
+    print('{date}: Connection Closed'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime())))
 
 def main():
     parser = argparse.ArgumentParser(description='Python Web Server')
     parser.add_argument('-p', type = int, help = 'Port Number', default = 8080)
     parser.add_argument('-r', type = str, help = 'Document Root Path', default = os.getcwd())
-    #parser.add_argument('-c', type = int, help='CPU Number')
+    parser.add_argument('-c', type = int, help='CPU Number', default = 1)
     parser.add_help = True
     args = vars(parser.parse_args())
     port = args['p']
+    cpus = args['c']
     os.chdir(args['r'] or os.getcwd())
     print("Starting server on port: ", port)
-    server = eventlet.listen(('0.0.0.0', port))
-    pool = eventlet.GreenPool(10000)
-    while True:
-        new_sock, address = server.accept()
-        pool.spawn_n(handle, new_sock)
+    server = eventlet.listen(('0.0.0.0', port), backlog = 100)
+
+    for i in range(cpus):
+        pid = os.fork()
+        # os.fork() returns 0 in the child process and the child's
+        # process id in the parent. So if pid == 0 then we're in
+        # the child process.
+        if pid == 0:
+            pool = eventlet.GreenPool(10000)
+            childpid = os.getpid()
+            print('Started the Fork with PID: {0}'.format(childpid))
+            try:
+                while True:
+                    new_sock, address = server.accept()
+                    pool.spawn_n(handle, new_sock)
+            except KeyboardInterrupt:
+                print('Exiting the Child Process')
+                sys.exit()
+    try:
+        os.waitpid(-1, 0)
+    except KeyboardInterrupt:
+        print('Killing the Server')
+        sys.exit()
 
 if __name__ == '__main__':
     proc_dir = os.getcwd()
