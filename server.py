@@ -126,16 +126,17 @@ def main():
     server = eventlet.listen(('0.0.0.0', port))
     pipes = [];
     processes = [];
-    for i in range(1, cpus):
+    for i in range(0, cpus):
         parent_conn, child_conn = Pipe()
         pipes.append(parent_conn)
         p = Process(target=worker, args=(child_conn,))
-        processes.append[p]
+        processes.append(p)
     counter = 0;
+    print(len(pipes), len(processes))
     while True:
         new_sock, address = server.accept()
         pipes[counter].send(new_sock)
-        counter = counter + 1 % cpus
+        counter = (counter + 1) % cpus
 
 if __name__ == '__main__':
     proc_dir = os.getcwd()
