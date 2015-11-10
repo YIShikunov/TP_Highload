@@ -4,6 +4,7 @@ from eventlet.green import socket
 from eventlet.green.time import gmtime, strftime
 from eventlet.green.urllib import parse
 import argparse
+import sys
 import dicts
 from generateDirectoryIndex import generateDirectoryIndex
 
