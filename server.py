@@ -38,7 +38,11 @@ def Respond404(client, code:str):
 
 def RespondHead(client, file:str):
     filepath = file.split('?')
-    path = os.getcwd() + parse.unquote(filepath[0])
+    path = os.path.join(os.getcwd(), parse.unquote(filepath[0]))
+    path = os.path.normpath(path)
+    if (os.path.commonprefix(path, os.getcwd()) != os.getcwd()):
+        Respond404(client, '403')
+        return None
     print("requesting file: " + str(path))
     f = None
     if (os.path.isfile(path)):
@@ -117,7 +121,9 @@ def main():
     args = vars(parser.parse_args())
     port = args['p']
     cpus = args['c']
-    os.chroot(args['r'] or os.getcwd())
+    path = os.path.expanduser(args['r'] or os.getcwd())
+    path = os.path.normpath(os.path.expanduser(args['r'] or os.getcwd()))
+    os.chdir(path)
     print("Starting server on port: ", port)
     server = eventlet.listen(('0.0.0.0', port), backlog = 100)
 
