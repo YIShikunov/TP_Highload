@@ -19,6 +19,7 @@ def RespondNotSupported(client):
 def Respond404(client, code:str):
     path404 = os.path.join(proc_dir, "404.html")
     f = open(path404, 'r')
+    print('Respond error with code: ' + code)
     http_response = 'HTTP/1.1 ' + dicts.responseCodes[code] + '\r\n'
     http_response += 'Date: {date}\r\n'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime()))
     http_response += 'Server: TPHW\r\n'
@@ -38,15 +39,18 @@ def Respond404(client, code:str):
 
 def RespondHead(client, file:str):
     filepath = file.split('?')
-    path = os.path.join(os.getcwd(), parse.unquote(filepath[0]))
-    path = os.path.normpath(path)
-    if (os.path.commonprefix([path, os.getcwd()]) != os.getcwd()):
+    path = os.getcwd() + parse.unquote(filepath[0])
+    path = (os.path.normpath(path))
+    common = os.path.commonprefix([path, os.getcwd()])
+    if (common != os.getcwd()):
+        print('prefix mismatch')
         Respond404(client, '403')
         return None
     print("requesting file: " + str(path))
     f = None
     if (os.path.isfile(path)):
         try:
+            print('file found')
             f = open(path, 'r')
             http_response = 'HTTP/1.1 200 OK\r\n'
             http_response += 'Date: {date}\r\n'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime()))
@@ -63,6 +67,7 @@ def RespondHead(client, file:str):
             Respond404(client,'404')
     elif (os.path.isdir(path)):
         try:
+            print('dir found') 
             f = open(os.path.join(path, 'index.html'), 'r')
             http_response = 'HTTP/1.1 200 OK\r\n'
             http_response += 'Date: {date}\r\n'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime()))
