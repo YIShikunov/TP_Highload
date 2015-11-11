@@ -16,7 +16,7 @@ def RespondNotSupported(client):
     client.sendall(http_response.encode())
 
 
-def Respond404(client):
+def Respond404(client, code:str):
     path404 = os.path.join(proc_dir, "404.html")
     f = open(path404, 'r')
     http_response = 'HTTP/1.1 ' + dicts.responseCodes['404'] + '\r\n'
@@ -36,8 +36,9 @@ def Respond404(client):
     f.close()
 
 
-def RespondHead(client, file):
-    path = os.getcwd() + parse.unquote(file)
+def RespondHead(client, file:str):
+    filepath = file.split('?')
+    path = os.getcwd() + parse.unquote(filepath[0])
     print("requesting file: " + str(path))
     f = None
     if (os.path.isfile(path)):
@@ -52,29 +53,30 @@ def RespondHead(client, file):
             client.sendall(http_response.encode())
         except PermissionError:
             print("Permission error on " + path)
-            Respond404(client)
+            Respond404(client, '403')
         except IOError:
             print("File not found on " + path)
-            Respond404(client)
-    elif (os.path.isdir(path) or ("index.html" in str(path))):
+            Respond404(client,'404')
+    elif (os.path.isdir(path)):
         try:
             f = open(os.path.join(path, 'index.html'), 'r')
-        except PermissionError:
-            print("Permission error on " + path)
-            Respond404(client)
-        except IOError:
-            print("File not found on " + path)
-            filteredPath = os.path.dirname(path)
-            f = generateDirectoryIndex(filteredPath, os.getcwd())
             http_response = 'HTTP/1.1 200 OK\r\n'
             http_response += 'Date: {date}\r\n'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime()))
             http_response += 'Server: TPHW\r\n'
-            http_response += 'Content-Length: {0}\r\n'.format(len(f))
-            http_response += 'Content-Type: {0}\r\n'.format("text/html")
+            http_response += 'Content-Length: {0}\r\n'.format(os.stat(path).st_size)
+            http_response += 'Content-Type: {0}\r\n'.format(dicts.contentTypes.get(path.split(".")[-1], 'application/octet-stream'))
             http_response += '\r\n'
             client.sendall(http_response.encode())
+        except PermissionError:
+            print("Permission error on " + path)
+            Respond404(client, '403')
+        except IOError:
+            print("File not found on " + path)
+            #filteredPath = os.path.dirname(path)
+            #f = generateDirectoryIndex(filteredPath, os.getcwd())
+            Respond404(client, '403')
     else:
-        Respond404(client)
+        Respond404(client, '404')
     return f
     
 def RespondWithFile(client, file):
@@ -115,7 +117,7 @@ def main():
     args = vars(parser.parse_args())
     port = args['p']
     cpus = args['c']
-    os.chdir(args['r'] or os.getcwd())
+    os.chroot(args['r'] or os.getcwd())
     print("Starting server on port: ", port)
     server = eventlet.listen(('0.0.0.0', port), backlog = 100)
 
