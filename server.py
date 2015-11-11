@@ -68,12 +68,13 @@ def RespondHead(client, file:str):
     elif (os.path.isdir(path)):
         try:
             print('dir found') 
-            f = open(os.path.join(path, 'index.html'), 'r')
+            filePath = os.path.join(path, 'index.html')
+            f = open(filePath, 'r')
             http_response = 'HTTP/1.1 200 OK\r\n'
             http_response += 'Date: {date}\r\n'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime()))
             http_response += 'Server: TPHW\r\n'
-            http_response += 'Content-Length: {0}\r\n'.format(os.stat(path).st_size)
-            http_response += 'Content-Type: {0}\r\n'.format(dicts.contentTypes.get(path.split(".")[-1], 'application/octet-stream'))
+            http_response += 'Content-Length: {0}\r\n'.format(os.stat(filePath).st_size)
+            http_response += 'Content-Type: {0}\r\n'.format(dicts.contentTypes.get(filePath.split(".")[-1], 'application/octet-stream'))
             http_response += '\r\n'
             client.sendall(http_response.encode())
         except PermissionError:

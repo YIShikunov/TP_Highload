@@ -2,6 +2,7 @@ contentTypes = {
         'ico': 'image/x-icon',
         'txt': 'text/plain',
         'html': 'text/html',
+        'htm': 'text/html',
         'css': 'text/css',
         'js': 'application/javascript',
         'jpg': 'image/jpeg',
