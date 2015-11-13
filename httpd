@@ -19,7 +19,7 @@ def RespondNotSupported(client):
 
 def Respond404(client, code:str):
     path404 = os.path.join(proc_dir, "404.html")
-    f = open(path404, 'r')
+    f = open(path404, 'rb')
     print('Respond error with code: ' + code)
     http_response = 'HTTP/1.1 ' + dicts.responseCodes[code] + '\r\n'
     http_response += 'Date: {date}\r\n'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime()))
@@ -52,12 +52,12 @@ def RespondHead(client, file:str):
     if (os.path.isfile(path)):
         try:
             print('file found')
-            f = open(path, 'r')
+            f = open(path, 'rb')
             http_response = 'HTTP/1.1 200 OK\r\n'
             http_response += 'Date: {date}\r\n'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime()))
             http_response += 'Server: TPHW\r\n'
             http_response += 'Content-Length: {0}\r\n'.format(os.stat(path).st_size)
-            http_response += 'Content-Type: {0}\r\n'.format(dicts.contentTypes.get(path.split(".")[-1], 'application/octet-stream'))
+            http_response += 'Content-Type: {0}\r\n'.format(dicts.contentTypes.get(path.split(".")[-1].lower(), 'application/octet-stream'))
             http_response += '\r\n'
             client.sendall(http_response.encode())
         except PermissionError:
@@ -70,7 +70,7 @@ def RespondHead(client, file:str):
         try:
             print('dir found') 
             filePath = os.path.join(path, 'index.html')
-            f = open(filePath, 'r')
+            f = open(filePath, 'rb')
             http_response = 'HTTP/1.1 200 OK\r\n'
             http_response += 'Date: {date}\r\n'.format(date=strftime("%a, %d %b %Y %X GMT", gmtime()))
             http_response += 'Server: TPHW\r\n'
@@ -94,12 +94,12 @@ def RespondWithFile(client, file):
     if (type(file) is str):
         client.sendall(file.encode())
     else:
-        offset = 0
+        shitCount = 0
         while True:
-            sent = os.sendfile(client.fileno(), file.fileno(), offset, 4096)
-            if sent <= 0:
+            bytes = file.read(4096)
+            client.send(bytes)
+            if len(bytes) <= 0:
                 break
-            offset += sent
         file.close()
 
 def handle(client):
